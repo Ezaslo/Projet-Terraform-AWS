@@ -62,43 +62,41 @@ resource "aws_iam_instance_profile" "ssm_profile" {
 # --- User data: installe Docker et démarre ---
 
 locals {
+  ai_catalog = {
+    qwen-mini = { pull = "qwen2.5:0.5b" }
+    llama3-1b = { pull = "llama3.2:1b" }
+    phi3-mini = { pull = "phi3:mini" }
+  }
+  selected_ai = local.ai_catalog[var.ai_choice]
+
   user_data = <<-EOT
     #!/bin/bash
     set -euxo pipefail
-
-    # 1. Mises à jour et outils
     dnf update -y
     dnf install -y docker jq awscli || true
-    if ! command -v curl >/dev/null 2>&1; then
-      dnf install -y curl-minimal --allowerasing
-    fi
+    command -v curl >/dev/null 2>&1 || dnf install -y curl-minimal --allowerasing
 
-    # 2. Démarrer Docker
-    systemctl enable docker
-    systemctl start docker
+    systemctl enable --now docker
 
-    # 3. Lancer Ollama
     docker run -d --name ollama \
       -p 127.0.0.1:11434:11434 \
       --restart unless-stopped \
       ollama/ollama:latest
 
-    # 4. Attendre que l’API réponde
+    # wait API
     for i in {1..60}; do
-      if curl -fsS http://127.0.0.1:11434/api/version >/dev/null; then
-        break
-      fi
+      curl -fsS http://127.0.0.1:11434/api/version && break
       sleep 2
     done
 
-    # 5. Télécharger le modèle
-    curl -fsS -X POST http://127.0.0.1:11434/api/pull -d '{"name":"${var.ollama_model}"}'
+    # pull modèle choisi
+    curl -fsS -X POST http://127.0.0.1:11434/api/pull -d '{"name":"${local.selected_ai.pull}"}'
 
-    # 6. Tag l’instance "AI=ready"
+    # tag EC2
     IID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
     REGION=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)
     aws ec2 create-tags --region "$REGION" --resources "$IID" \
-      --tags Key=AI,Value=ready Key=OllamaModel,Value=${var.ollama_model}
+      --tags Key=AI,Value=ready Key=OllamaModel,Value=${local.selected_ai.pull} || true
   EOT
 }
 
