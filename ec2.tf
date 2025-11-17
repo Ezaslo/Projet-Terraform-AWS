@@ -11,8 +11,16 @@ data "aws_ami" "al2023" {
 # --- Security Group minimal (aucune entrée) ---
 resource "aws_security_group" "ec2_min" {
   name        = "${var.project}-sg-ec2"
-  description = "SG minimal pour EC2 (no ingress)"
+  description = "SG minimal pour EC2 "
   vpc_id      = aws_vpc.main.id
+
+   ingress {
+    from_port   = 11434
+    to_port     = 11434
+    protocol    = "tcp"
+    cidr_blocks = [var.allowed_cidr] # pour l'instant 0.0.0.0/0
+  }
+
 
   egress {
     from_port   = 0
@@ -66,6 +74,7 @@ locals {
     qwen-mini = { pull = "qwen2.5:0.5b" }
     llama3-1b = { pull = "llama3.2:1b" }
     phi3-mini = { pull = "phi3:mini" }
+    phi4-mini   = { pull = "phi4-mini" }
   }
   selected_ai = local.ai_catalog[var.ai_choice]
 
@@ -79,7 +88,7 @@ locals {
     systemctl enable --now docker
 
     docker run -d --name ollama \
-      -p 127.0.0.1:11434:11434 \
+      -p 0.0.0.0:11434:11434 \
       --restart unless-stopped \
       ollama/ollama:latest
 

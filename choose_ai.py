@@ -6,7 +6,8 @@ from pathlib import Path
 catalog = {
     "qwen-mini": "qwen2.5:0.5b (ultra léger, FR ok)",
     "llama3-1b": "llama3.2:1b (polyvalent)",
-    "phi3-mini": "phi3:mini (compact)"
+    "phi3-mini": "phi3:mini (compact)",
+    "phi4-mini": "phi4-mini (modèle plus puissant, toujours local)"
 }
 
 # Afficher le menu

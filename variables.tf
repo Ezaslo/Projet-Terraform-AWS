@@ -60,7 +60,13 @@ variable "ai_choice" {
   type        = string
   default     = "qwen-mini"
   validation {
-    condition     = contains(["qwen-mini", "llama3-1b", "phi3-mini"], var.ai_choice)
-    error_message = "ai_choice doit être l'un de: qwen-mini, llama3-1b, phi3-mini."
+    condition     = contains(["qwen-mini", "llama3-1b", "phi3-mini", "phi4-mini"], var.ai_choice)
+    error_message = "ai_choice doit être l'un de: qwen-mini, llama3-1b, phi3/4-mini."
   }
+}
+
+variable "allowed_cidr" {
+  description = "CIDR autorisé à accéder à l'IA (par ex. ton IP publique /32)"
+  type        = string
+  default     = "0.0.0.0/0" # pour tester; ensuite tu pourras mettre ton IP
 }
