@@ -22,11 +22,11 @@ try:
     if idx < 1 or idx > len(choices):
         raise ValueError
 except ValueError:
-    print("❌ Choix invalide. Relance le script et choisis un numéro valide.")
+    print("Choix invalide. Relance le script et choisis un numéro valide.")
     sys.exit(1)
 
 selected = choices[idx - 1]
-print(f"\n✅ Tu as choisi : {selected} ({catalog[selected]})")
+print(f"\nTu as choisi : {selected} ({catalog[selected]})")
 
 # Écrire terraform.tfvars
 tfvars_content = f'ai_choice = "{selected}"\n'
@@ -36,7 +36,7 @@ print(f"📄 Fichier {tfvars_path} mis à jour avec : {tfvars_content.strip()}")
 
 # Lancer terraform init / plan / apply
 def run_cmd(cmd):
-    print(f"\n🧱 Exécution : {' '.join(cmd)}\n")
+    print(f"\nExécution... : {' '.join(cmd)}\n")
     result = subprocess.run(cmd, capture_output=True, text=True)
     print(result.stdout)
     if result.returncode != 0:
@@ -47,4 +47,4 @@ run_cmd(["terraform", "init"])
 run_cmd(["terraform", "plan", f"-var=ai_choice={selected}"])
 run_cmd(["terraform", "apply", "-auto-approve", f"-var=ai_choice={selected}"])
 
-print("\n🚀 Déploiement Terraform terminé avec succès !")
+print("\nDéploiement Terraform terminé avec succès !")
