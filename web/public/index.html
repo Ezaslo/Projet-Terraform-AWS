@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terraform AI Deployer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1> TerminIAtor</h1>
+            <p>Sélectionnez votre modèle IA et déployez sur AWS</p>
+        </header>
+
+        <!-- Sélection du modèle -->
+        <section class="model-selection">
+            <h2>Choisissez votre modèle IA</h2>
+            <div class="models-grid">
+                <div class="model-card" data-model="qwen-mini">
+                    <div class="model-icon"></div>
+                    <h3>Qwen Mini</h3>
+                    <p class="model-desc">qwen2.5:0.5b</p>
+                    <span class="model-tag">Ultra léger • FR OK</span>
+                </div>
+
+                <div class="model-card" data-model="llama3-1b">
+                    <div class="model-icon"></div>
+                    <h3>Llama 3.2</h3>
+                    <p class="model-desc">llama3.2:1b</p>
+                    <span class="model-tag">Polyvalent</span>
+                </div>
+
+                <div class="model-card" data-model="phi3-mini">
+                    <div class="model-icon"></div>
+                    <h3>Phi 3 Mini</h3>
+                    <p class="model-desc">phi3:mini</p>
+                    <span class="model-tag">Compact</span>
+                </div>
+
+                <div class="model-card" data-model="phi4-mini">
+                    <div class="model-icon"></div>
+                    <h3>Phi 4 Mini</h3>
+                    <p class="model-desc">phi4-mini</p>
+                    <span class="model-tag">Plus puissant</span>
+                </div>
+            </div>
+
+            <div id="selectedModel" class="selected-info" style="display: none;">
+                <strong>Modèle sélectionné :</strong> <span id="selectedModelName"></span>
+            </div>
+        </section>
+
+        <!-- Boutons d'action -->
+        <section class="actions">
+            <button id="deployBtn" class="deploy-btn" disabled>
+                <span></span> Lancer le déploiement
+            </button>
+            
+            <button id="destroyBtn" class="destroy-btn">
+                <span></span> Détruire toutes les ressources
+            </button>
+        </section>
+
+        <!-- Message de statut -->
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+
+        <!-- Console de logs -->
+        <section id="logsSection" class="logs-section" style="display: none;">
+            <h2> Console de déploiement</h2>
+            <div id="logs" class="logs"></div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
