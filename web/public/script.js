@@ -1,49 +1,139 @@
-const catalog = {
-    "qwen-mini": "qwen2.5:0.5b (ultra léger, FR ok)",
-    "llama3-1b": "llama3.2:1b (polyvalent)",
-    "phi3-mini": "phi3:mini (compact)",
-    "phi4-mini": "phi4-mini (modèle plus puissant, toujours local)",
-    "qwen-7b": "qwen2.5:7b (gros modèle, meilleure qualité)"
-};
-
 let selectedModel = null;
 let selectedInstanceType = null;
 let isDeploying = false;
+let isDestroying = false;
+let eventSource = null;
 
+// =======================
+// SSE : connexion au flux de logs backend
+// =======================
+function connectLogStream() {
+    if (eventSource) return; // éviter plusieurs connexions
 
-// Initialiser l'interface
-document.addEventListener('DOMContentLoaded', () => {
-    setupModelSelection(); // ← Nouvelle fonction
-    setupInstanceSelection();
-    setupDeployButton();
-    setupDestroyButton(); // ← Ajouter destroy
+    eventSource = new EventSource('http://localhost:3001/api/stream');
 
-});
+    eventSource.onmessage = (event) => {
+        try {
+            const log = JSON.parse(event.data);
+            handleLog(log);
+        } catch (e) {
+            console.error('Log SSE invalide', e, event.data);
+        }
+    };
 
-// Nouvelle fonction pour gérer la sélection des cartes existantes
-function setupModelSelection() {
-    const modelCards = document.querySelectorAll('.model-card');
-    
-    modelCards.forEach(card => {
-        card.addEventListener('click', () => {
-            if (isDeploying) return;
+    eventSource.onerror = (err) => {
+        console.error('Erreur SSE', err);
+        // EventSource gère la reconnexion automatiquement
+    };
+}
 
-            // Retirer la sélection de toutes les cartes
-            modelCards.forEach(c => c.classList.remove('selected'));
-            
-            // Ajouter la sélection à la carte cliquée
-            card.classList.add('selected');
-            
-            // Récupérer le modèle depuis data-model
-            selectedModel = card.dataset.model;
-            
-            console.log('Modèle sélectionné:', selectedModel);
-            
-            // Activer le bouton de déploiement
-            document.getElementById('deployBtn').disabled = false;
-        });
+function handleLog(log) {
+    // 1) Affichage dans la console
+    const logsDiv = document.getElementById('logs');
+    if (logsDiv) {
+        const line = document.createElement('div');
+        line.className = `log-line log-${log.type}`;
+        line.textContent = `[${new Date(log.timestamp).toLocaleTimeString()}] ${log.message}`;
+        logsDiv.appendChild(line);
+        logsDiv.scrollTop = logsDiv.scrollHeight;
+    }
+
+    // Rendre visible la section logs si ce n'est pas déjà fait
+    const logsSection = document.getElementById('logsSection');
+    if (logsSection && logsSection.style.display === 'none') {
+        logsSection.style.display = 'block';
+    }
+
+    // 2) Gestion du statut IA
+    const iaStatus = document.getElementById('iaStatus');
+    if (!iaStatus) return;
+
+    if (log.type === 'info' && log.message.includes('Test de disponibilité IA')) {
+        iaStatus.classList.remove('ready');
+        iaStatus.classList.add('loading');
+        iaStatus.innerHTML = `<span class="spinner"></span> Vérification de l'IA...`;
+    }
+
+    if (log.type === 'ia-ready') {
+        iaStatus.classList.remove('loading');
+        iaStatus.classList.add('ready');
+
+        const match = log.message.match(/http:\/\/[^\s]+/);
+        const url = match ? match[0] : null;
+
+        if (url) {
+            iaStatus.innerHTML = `🤖 IA prête : <a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        } else {
+            iaStatus.textContent = '🤖 IA prête';
+        }
+    }
+}
+
+function addLog(message, type = 'info') {
+    handleLog({
+        message,
+        type,
+        timestamp: new Date().toISOString()
     });
 }
+
+function resetUiForNewOperation(op) {
+    const logsDiv = document.getElementById('logs');
+    const logsSection = document.getElementById('logsSection');
+    const iaStatus = document.getElementById('iaStatus');
+
+    // Nettoyer la console de logs
+    if (logsDiv) {
+        logsDiv.innerHTML = '';
+    }
+
+    // Toujours afficher la section logs quand on démarre une nouvelle op
+    if (logsSection) {
+        logsSection.style.display = 'block';
+    }
+
+    // Reset du statut IA
+    if (iaStatus) {
+        iaStatus.classList.remove('loading', 'ready');
+
+        if (op === 'deploy') {
+            iaStatus.textContent = 'Déploiement en cours...';
+        } else if (op === 'destroy') {
+            iaStatus.textContent = 'Destruction en cours...';
+        } else {
+            iaStatus.textContent = 'IA non déployée.';
+        }
+    }
+}
+
+// =======================
+// Sélection du modèle IA
+// =======================
+function setupModelSelection() {
+    const cards = document.querySelectorAll('.model-card');
+    const selectedModelDiv = document.getElementById('selectedModel');
+    const selectedModelNameSpan = document.getElementById('selectedModelName');
+
+    cards.forEach(card => {
+        card.addEventListener('click', () => {
+            cards.forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+
+            selectedModel = card.dataset.model;
+            selectedModelDiv.style.display = 'block';
+            selectedModelNameSpan.textContent = card.querySelector('h3').textContent;
+        });
+    });
+
+    // valeur par défaut : premier modèle
+    if (cards.length > 0) {
+        cards[0].click();
+    }
+}
+
+// =======================
+// Sélection du type d'instance
+// =======================
 function setupInstanceSelection() {
     const cards = document.querySelectorAll('.instance-card');
     const selectedInstanceDiv = document.getElementById('selectedInstance');
@@ -70,237 +160,110 @@ function setupInstanceSelection() {
     });
 }
 
+// =======================
+// Bouton Déployer
+// =======================
 function setupDeployButton() {
     const deployBtn = document.getElementById('deployBtn');
+    const logsSection = document.getElementById('logsSection');
 
     deployBtn.addEventListener('click', async () => {
-        if (!selectedModel || isDeploying) return;
-
+        if (!selectedModel || !selectedInstanceType || isDeploying) return;
+        resetUiForNewOperation('deploy');
         isDeploying = true;
         deployBtn.disabled = true;
         deployBtn.classList.add('running');
-        deployBtn.innerHTML = '<span class="spinning">⟳</span> Déploiement en cours...';
+        deployBtn.textContent = '🚀 Déploiement en cours...';
 
-        // Afficher la console
-        const logsSection = document.getElementById('logsSection');
-        logsSection.style.display = 'block';
-
-        const logsDiv = document.getElementById('logs');
-        logsDiv.innerHTML = '';
-
-        const statusMessage = document.getElementById('statusMessage');
-        statusMessage.style.display = 'none';
-        statusMessage.className = 'status-message';
-
-                try {
-            const instanceType = selectedInstanceType || 't3.medium';
-
-            const response = await fetch('http://localhost:3001/api/deploy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ aiChoice: selectedModel, instanceType })
-            });
-
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n\n');
-
-                lines.forEach(line => {
-                    if (line.startsWith('data: ')) {
-                        const data = line.substring(6);
-
-                        if (data === '[DONE]') {
-                            showSuccess();
-                            return;
-                        }
-
-                        if (data === '[ERROR]') {
-                            showError();
-                            return;
-                        }
-
-                        try {
-                            const log = JSON.parse(data);
-                            addLog(log.message, log.type, log.timestamp);
-                        } catch (e) {
-                            // Ignorer les erreurs de parsing
-                        }
-                    }
-                });
-            }
-
-        } catch (error) {
-            addLog(`❌ Erreur de connexion : ${error.message}`, 'error', new Date().toLocaleTimeString());
-            showError();
+        if (logsSection) {
+            logsSection.style.display = 'block';
         }
 
-    });
-}
-
-
-// Nouvelle fonction pour le bouton destroy
-function setupDestroyButton() {
-    const destroyBtn = document.getElementById('destroyBtn');
-
-    destroyBtn.addEventListener('click', async () => {
-        if (isDeploying) {
-            alert('Un déploiement est en cours, veuillez attendre...');
-            return;
-        }
-
-        const confirmed = confirm('⚠️ ATTENTION !\n\nÊtes-vous sûr de vouloir détruire TOUTES les ressources AWS ?\n\nCette action est IRRÉVERSIBLE !');
-        
-        if (!confirmed) return;
-
-        const logsSection = document.getElementById('logsSection');
-        const logsDiv = document.getElementById('logs');
-        const statusMessage = document.getElementById('statusMessage');
-
-        // Désactiver les boutons
-        isDeploying = true;
-        destroyBtn.disabled = true;
-        destroyBtn.classList.add('running');
-        destroyBtn.innerHTML = '<span class="spinning">⟳</span> Destruction en cours...';
-        document.getElementById('deployBtn').disabled = true;
-
-        // Afficher la console
-        logsSection.style.display = 'block';
-        logsDiv.innerHTML = '';
-        statusMessage.style.display = 'none';
-        statusMessage.className = 'status-message';
+        addLog(`Déploiement demandé (modèle=${selectedModel}, instance=${selectedInstanceType})`, 'info');
 
         try {
-            const response = await fetch('http://localhost:3001/api/destroy', {
+            const res = await fetch('http://localhost:3001/api/deploy', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    aiChoice: selectedModel,
+                    instanceType: selectedInstanceType
+                })
             });
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value);
-                const lines = chunk.split('\n\n');
-
-                lines.forEach(line => {
-                    if (line.startsWith('data: ')) {
-                        const data = line.substring(6);
-
-                        if (data === '[DONE]') {
-                            showDestroySuccess();
-                            return;
-                        }
-
-                        if (data === '[ERROR]') {
-                            showDestroyError();
-                            return;
-                        }
-
-                        try {
-                            const log = JSON.parse(data);
-                            addLog(log.message, log.type, log.timestamp);
-                        } catch (e) {
-                            // Ignorer
-                        }
-                    }
-                });
+            if (!res.ok) {
+                addLog('❌ Erreur backend deploy', 'error');
+                alert('Erreur côté backend (deploy). Regarde les logs.');
+            } else {
+                addLog('✅ Commande de déploiement envoyée. Suis la progression dans les logs.', 'success');
             }
-
-        } catch (error) {
-            addLog(`❌ Erreur de connexion : ${error.message}`, 'error', new Date().toLocaleTimeString());
-            showDestroyError();
+        } catch (e) {
+            addLog(`❌ Erreur de connexion backend : ${e.message}`, 'error');
+            alert('Erreur de connexion au backend.');
+        } finally {
+            isDeploying = false;
+            deployBtn.disabled = false;
+            deployBtn.classList.remove('running');
+            deployBtn.textContent = '🚀 Déployer';
         }
     });
 }
 
-function addLog(message, type, timestamp) {
-    const logsDiv = document.getElementById('logs');
-    const logEntry = document.createElement('div');
-    logEntry.className = `log-entry ${type}`;
-    logEntry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
-    logsDiv.appendChild(logEntry);
-    logsDiv.scrollTop = logsDiv.scrollHeight;
-}
-
-function showSuccess() {
-    const deployBtn = document.getElementById('deployBtn');
-    deployBtn.classList.remove('running');
-    deployBtn.innerHTML = '<span>✓</span> Nouveau déploiement';
-    deployBtn.disabled = false;
-
-    const statusMessage = document.getElementById('statusMessage');
-    statusMessage.style.display = 'block';
-    statusMessage.className = 'status-message success';
-    statusMessage.innerHTML = `
-        <strong>✓ Déploiement réussi !</strong><br>
-        Le modèle ${catalog[selectedModel]} est maintenant déployé.
-    `;
-
-    isDeploying = false;
-    selectedModel = null;
-    document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
-}
-
-function showError() {
-    const deployBtn = document.getElementById('deployBtn');
-    deployBtn.classList.remove('running');
-    deployBtn.innerHTML = '<span>▶</span> Réessayer';
-    deployBtn.disabled = false;
-
-    const statusMessage = document.getElementById('statusMessage');
-    statusMessage.style.display = 'block';
-    statusMessage.className = 'status-message error';
-    statusMessage.innerHTML = `
-        <strong>✗ Échec du déploiement</strong><br>
-        Une erreur s'est produite. Vérifiez les logs ci-dessus.
-    `;
-
-    isDeploying = false;
-}
-
-function showDestroySuccess() {
+// =======================
+// Bouton Détruire
+// =======================
+function setupDestroyButton() {
     const destroyBtn = document.getElementById('destroyBtn');
-    destroyBtn.disabled = false;
-    destroyBtn.classList.remove('running');
-    destroyBtn.innerHTML = '<span>🔥</span> Détruire toutes les ressources';
+    const logsSection = document.getElementById('logsSection');
 
-    document.getElementById('deployBtn').disabled = false;
+    destroyBtn.addEventListener('click', async () => {
+        if (isDestroying) return;
 
-    const statusMessage = document.getElementById('statusMessage');
-    statusMessage.style.display = 'block';
-    statusMessage.className = 'status-message success';
-    statusMessage.innerHTML = `
-        <strong>✓ Destruction réussie !</strong><br>
-        Toutes les ressources AWS ont été supprimées.
-    `;
+        if (!confirm('Tu es sûr de vouloir détruire l\'infrastructure ?')) {
+            return;
+        }
+        resetUiForNewOperation('deploy');
+        isDestroying = true;
+        destroyBtn.disabled = true;
+        destroyBtn.classList.add('running');
+        destroyBtn.textContent = '💣 Destruction en cours...';
 
-    isDeploying = false;
+        if (logsSection) {
+            logsSection.style.display = 'block';
+        }
+
+        addLog('Commande de destruction envoyée.', 'info');
+
+        try {
+            const res = await fetch('http://localhost:3001/api/destroy', {
+                method: 'POST'
+            });
+
+            if (!res.ok) {
+                addLog('❌ Erreur backend destroy', 'error');
+                alert('Erreur côté backend (destroy). Regarde les logs.');
+            } else {
+                addLog('✅ Destruction demandée. Suis la progression dans les logs.', 'success');
+            }
+        } catch (e) {
+            addLog(`❌ Erreur de connexion backend : ${e.message}`, 'error');
+            alert('Erreur de connexion au backend.');
+        } finally {
+            isDestroying = false;
+            destroyBtn.disabled = false;
+            destroyBtn.classList.remove('running');
+            destroyBtn.textContent = '💣 Détruire';
+        }
+    });
 }
 
-function showDestroyError() {
-    const destroyBtn = document.getElementById('destroyBtn');
-    destroyBtn.disabled = false;
-    destroyBtn.classList.remove('running');
-    destroyBtn.innerHTML = '<span>🔥</span> Détruire toutes les ressources';
-
-    document.getElementById('deployBtn').disabled = false;
-
-    const statusMessage = document.getElementById('statusMessage');
-    statusMessage.style.display = 'block';
-    statusMessage.className = 'status-message error';
-    statusMessage.innerHTML = `
-        <strong>✗ Échec de la destruction</strong><br>
-        Une erreur s'est produite. Vérifiez les logs ci-dessus.
-    `;
-
-    isDeploying = false;
-}
+// =======================
+// Init
+// =======================
+document.addEventListener('DOMContentLoaded', () => {
+    connectLogStream();
+    setupModelSelection();
+    setupInstanceSelection();
+    setupDeployButton();
+    setupDestroyButton();
+});

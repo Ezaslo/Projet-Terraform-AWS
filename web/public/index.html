@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terraform AI Deployer</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8" />
+    <title>TerminIAtor - Déploiement IA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1> TerminIAtor</h1>
-            <p>Sélectionnez votre modèle IA et déployez sur AWS</p>
+    <div class="app">
+        <header class="header">
+            <h1>TerminIAtor</h1>
+            <p>Choisis ton modèle IA, ton instance, et déploie ton labo.</p>
         </header>
 
-                <!-- Sélection du modèle -->
+        <!-- Sélection du modèle -->
         <section class="model-selection">
             <h2>Choisissez votre modèle IA</h2>
             <div class="models-grid">
@@ -58,12 +58,12 @@
             </div>
         </section>
 
-                <!-- Sélection du type d'instance -->
+        <!-- Sélection du type d'instance -->
         <section class="instance-selection">
             <h2>Choisissez le type d'instance EC2</h2>
             <p class="helper-text">
-                Tu as accès aux familles <strong>T</strong> (généralistes) et <strong>g4dn</strong> (GPU).
-                Choisis en fonction de ton besoin perf / coût.
+                Tu as accès aux familles <strong>T</strong> et <strong>g4dn</strong>.  
+                Commence par <code>t3.medium</code> si tu n'es pas sûr.
             </p>
 
             <h3 class="instance-family-title">Famille T – généraliste (sans GPU)</h3>
@@ -110,7 +110,7 @@
                 <div class="instance-card" data-instance="g4dn.xlarge">
                     <h4>g4dn.xlarge</h4>
                     <p class="instance-desc">1 GPU • 4 vCPU • 16 GiB</p>
-                    <span class="instance-tag">GPU • point d’entrée</span>
+                    <span class="instance-tag">GPU • entrée de gamme</span>
                 </div>
 
                 <div class="instance-card" data-instance="g4dn.2xlarge">
@@ -137,26 +137,21 @@
             </div>
         </section>
 
-
-
         <!-- Boutons d'action -->
         <section class="actions">
-            <button id="deployBtn" class="deploy-btn" disabled>
-                <span></span> Lancer le déploiement
-            </button>
-            
-            <button id="destroyBtn" class="destroy-btn">
-                <span></span> Détruire toutes les ressources
-            </button>
+            <button id="deployBtn" class="primary-btn">🚀 Déployer</button>
+            <button id="destroyBtn" class="secondary-btn">💣 Détruire</button>
         </section>
 
-        <!-- Message de statut -->
-        <div id="statusMessage" class="status-message" style="display: none;"></div>
+        <!-- Statut IA -->
+        <section id="iaStatus" class="ia-status">
+            IA non déployée.
+        </section>
 
         <!-- Console de logs -->
         <section id="logsSection" class="logs-section" style="display: none;">
-            <h2> Console de déploiement</h2>
-            <div id="logs" class="logs"></div>
+            <h2>Console de déploiement</h2>
+            <div id="logs" class="logs-console"></div>
         </section>
     </div>
 
