@@ -51,7 +51,7 @@ function handleLog(log) {
     if (log.type === 'info' && log.message.includes('Test de disponibilité IA')) {
         iaStatus.classList.remove('ready');
         iaStatus.classList.add('loading');
-        iaStatus.innerHTML = `<span class="spinner"></span> Vérification de l'IA...`;
+        iaStatus.innerHTML = `<span class="spinner"></span> Déploiment de l'IA, cette opération peut prendre quelques minutes...`;
     }
 
     if (log.type === 'ia-ready') {
@@ -114,6 +114,30 @@ function setupModelSelection() {
     const selectedModelDiv = document.getElementById('selectedModel');
     const selectedModelNameSpan = document.getElementById('selectedModelName');
 
+    if (!cards.length) return;
+
+    // 👉 Essayer de restaurer le choix enregistré
+    const savedModel = localStorage.getItem('selectedModel');
+    let initialCard = null;
+
+    if (savedModel) {
+        initialCard = Array.from(cards).find(c => c.dataset.model === savedModel) || null;
+    }
+
+    // Si rien en storage ou modèle plus dispo → on prend le premier
+    if (!initialCard) {
+        initialCard = cards[0];
+    }
+
+    // Appliquer la sélection initiale sans déclencher de clic
+    cards.forEach(c => c.classList.remove('selected'));
+    initialCard.classList.add('selected');
+
+    selectedModel = initialCard.dataset.model;
+    selectedModelDiv.style.display = 'block';
+    selectedModelNameSpan.textContent = initialCard.querySelector('h3').textContent;
+
+    // 👉 Gestion des clics + sauvegarde dans localStorage
     cards.forEach(card => {
         card.addEventListener('click', () => {
             cards.forEach(c => c.classList.remove('selected'));
@@ -122,14 +146,13 @@ function setupModelSelection() {
             selectedModel = card.dataset.model;
             selectedModelDiv.style.display = 'block';
             selectedModelNameSpan.textContent = card.querySelector('h3').textContent;
+
+            // Sauvegarde du choix
+            localStorage.setItem('selectedModel', selectedModel);
         });
     });
-
-    // valeur par défaut : premier modèle
-    if (cards.length > 0) {
-        cards[0].click();
-    }
 }
+
 
 // =======================
 // Sélection du type d'instance
@@ -139,15 +162,32 @@ function setupInstanceSelection() {
     const selectedInstanceDiv = document.getElementById('selectedInstance');
     const selectedInstanceNameSpan = document.getElementById('selectedInstanceName');
 
-    // Valeur par défaut : t3.medium si présent
-    const defaultCard = Array.from(cards).find(c => c.dataset.instance === 't3.medium') || cards[0];
-    if (defaultCard) {
-        defaultCard.classList.add('selected');
-        selectedInstanceType = defaultCard.dataset.instance;
-        selectedInstanceDiv.style.display = 'block';
-        selectedInstanceNameSpan.textContent = selectedInstanceType;
+    if (!cards.length) return;
+
+    // 👉 Essayer de restaurer le type d’instance choisi
+    const savedInstance = localStorage.getItem('selectedInstanceType');
+    let initialCard = null;
+
+    if (savedInstance) {
+        initialCard = Array.from(cards).find(c => c.dataset.instance === savedInstance) || null;
     }
 
+    // Si rien trouvé : fallback t3.medium, sinon première carte
+    if (!initialCard) {
+        initialCard =
+            Array.from(cards).find(c => c.dataset.instance === 't3.medium') ||
+            cards[0];
+    }
+
+    // Appliquer la sélection initiale
+    cards.forEach(c => c.classList.remove('selected'));
+    initialCard.classList.add('selected');
+
+    selectedInstanceType = initialCard.dataset.instance;
+    selectedInstanceDiv.style.display = 'block';
+    selectedInstanceNameSpan.textContent = selectedInstanceType;
+
+    // 👉 Gestion des clics + sauvegarde dans localStorage
     cards.forEach(card => {
         card.addEventListener('click', () => {
             cards.forEach(c => c.classList.remove('selected'));
@@ -156,9 +196,13 @@ function setupInstanceSelection() {
             selectedInstanceType = card.dataset.instance;
             selectedInstanceDiv.style.display = 'block';
             selectedInstanceNameSpan.textContent = selectedInstanceType;
+
+            // Sauvegarde du choix
+            localStorage.setItem('selectedInstanceType', selectedInstanceType);
         });
     });
 }
+
 
 // =======================
 // Bouton Déployer
