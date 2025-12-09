@@ -18,11 +18,24 @@ async function sendMessage() {
   chat.scrollTop = chat.scrollHeight;
   input.value = "";
 
-  try {
+    try {
+    // 1) Récupérer le modèle dispo côté Ollama (une seule fois)
+    if (!window.currentModel) {
+      const tagsRes = await fetch("/api/tags");
+      const tags = await tagsRes.json();
+
+      if (tags.models && tags.models.length > 0) {
+        window.currentModel = tags.models[0].name; // ex: "qwen2.5:0.5b"
+      } else {
+        window.currentModel = "qwen2.5:0.5b"; // fallback
+      }
+    }
+
     const body = {
-      model: "phi4-mini",
+      model: window.currentModel,
       prompt: text,
-      stream: false
+      stream: false,
+      num_predict: 200
     };
 
     const res = await fetch("/api/generate", {
@@ -33,6 +46,7 @@ async function sendMessage() {
 
     const data = await res.json();
     aiDiv.textContent = data.response || "(pas de réponse)";
+
   } catch (e) {
     aiDiv.textContent = "Erreur : " + e.message;
   }

@@ -18,11 +18,16 @@ const TERRAFORM_DIR = path.join(__dirname, '..');
 
 // Endpoint de déploiement
 app.post('/api/deploy', async (req, res) => {
-  const { aiChoice } = req.body;
+  const { aiChoice, instanceType } = req.body;
 
   if (!aiChoice) {
     return res.status(400).json({ error: 'Aucun modèle sélectionné' });
   }
+
+  const finalInstanceType =
+    typeof instanceType === 'string' && instanceType.trim() !== ''
+      ? instanceType.trim()
+      : 't3.medium';
 
   // SSE pour envoyer les logs en temps réel
   res.setHeader('Content-Type', 'text/event-stream');
@@ -36,18 +41,31 @@ app.post('/api/deploy', async (req, res) => {
   try {
     // 1. Écrire terraform.tfvars
     const tfvarsPath = path.join(TERRAFORM_DIR, 'terraform.tfvars');
-    const tfvarsContent = `ai_choice = "${aiChoice}"\n`;
+    const tfvarsContent =
+      `ai_choice    = "${aiChoice}"\n` +
+      `instance_type = "${finalInstanceType}"\n`;
     fs.writeFileSync(tfvarsPath, tfvarsContent);
-    sendLog(`📄 Fichier terraform.tfvars mis à jour avec : ai_choice = "${aiChoice}"`, 'success');
+    sendLog(
+      `📄 Fichier terraform.tfvars mis à jour avec : ai_choice = "${aiChoice}", instance_type = "${finalInstanceType}"`,
+      'success'
+    );
 
     // 2. Terraform init
     await runCommand('terraform init', TERRAFORM_DIR, sendLog);
 
     // 3. Terraform plan
-    await runCommand(`terraform plan -var=ai_choice=${aiChoice}`, TERRAFORM_DIR, sendLog);
+    await runCommand(
+      `terraform plan -var=ai_choice=${aiChoice} -var=instance_type=${finalInstanceType}`,
+      TERRAFORM_DIR,
+      sendLog
+    );
 
     // 4. Terraform apply
-    await runCommand(`terraform apply -auto-approve -var=ai_choice=${aiChoice}`, TERRAFORM_DIR, sendLog);
+    await runCommand(
+      `terraform apply -auto-approve -var=ai_choice=${aiChoice} -var=instance_type=${finalInstanceType}`,
+      TERRAFORM_DIR,
+      sendLog
+    );
 
     sendLog('🎉 Déploiement Terraform terminé avec succès !', 'success');
     res.write('data: [DONE]\n\n');
@@ -59,6 +77,7 @@ app.post('/api/deploy', async (req, res) => {
     res.end();
   }
 });
+
 
 // Endpoint de destruction
 app.post('/api/destroy', async (req, res) => {

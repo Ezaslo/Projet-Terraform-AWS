@@ -2,17 +2,22 @@ const catalog = {
     "qwen-mini": "qwen2.5:0.5b (ultra léger, FR ok)",
     "llama3-1b": "llama3.2:1b (polyvalent)",
     "phi3-mini": "phi3:mini (compact)",
-    "phi4-mini": "phi4-mini (modèle plus puissant, toujours local)"
+    "phi4-mini": "phi4-mini (modèle plus puissant, toujours local)",
+    "qwen-7b": "qwen2.5:7b (gros modèle, meilleure qualité)"
 };
 
 let selectedModel = null;
+let selectedInstanceType = null;
 let isDeploying = false;
+
 
 // Initialiser l'interface
 document.addEventListener('DOMContentLoaded', () => {
     setupModelSelection(); // ← Nouvelle fonction
+    setupInstanceSelection();
     setupDeployButton();
     setupDestroyButton(); // ← Ajouter destroy
+
 });
 
 // Nouvelle fonction pour gérer la sélection des cartes existantes
@@ -39,6 +44,31 @@ function setupModelSelection() {
         });
     });
 }
+function setupInstanceSelection() {
+    const cards = document.querySelectorAll('.instance-card');
+    const selectedInstanceDiv = document.getElementById('selectedInstance');
+    const selectedInstanceNameSpan = document.getElementById('selectedInstanceName');
+
+    // Valeur par défaut : t3.medium si présent
+    const defaultCard = Array.from(cards).find(c => c.dataset.instance === 't3.medium') || cards[0];
+    if (defaultCard) {
+        defaultCard.classList.add('selected');
+        selectedInstanceType = defaultCard.dataset.instance;
+        selectedInstanceDiv.style.display = 'block';
+        selectedInstanceNameSpan.textContent = selectedInstanceType;
+    }
+
+    cards.forEach(card => {
+        card.addEventListener('click', () => {
+            cards.forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+
+            selectedInstanceType = card.dataset.instance;
+            selectedInstanceDiv.style.display = 'block';
+            selectedInstanceNameSpan.textContent = selectedInstanceType;
+        });
+    });
+}
 
 function setupDeployButton() {
     const deployBtn = document.getElementById('deployBtn');
@@ -62,11 +92,13 @@ function setupDeployButton() {
         statusMessage.style.display = 'none';
         statusMessage.className = 'status-message';
 
-        try {
+                try {
+            const instanceType = selectedInstanceType || 't3.medium';
+
             const response = await fetch('http://localhost:3001/api/deploy', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ aiChoice: selectedModel })
+                body: JSON.stringify({ aiChoice: selectedModel, instanceType })
             });
 
             const reader = response.body.getReader();
@@ -107,8 +139,10 @@ function setupDeployButton() {
             addLog(`❌ Erreur de connexion : ${error.message}`, 'error', new Date().toLocaleTimeString());
             showError();
         }
+
     });
 }
+
 
 // Nouvelle fonction pour le bouton destroy
 function setupDestroyButton() {

@@ -392,3 +392,77 @@ header p {
 .logs::-webkit-scrollbar-thumb:hover {
     background: #64748b;
 }
+.instance-selection {
+    margin-bottom: 2.5rem;
+}
+
+.instance-selection h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: #e2e8f0;
+}
+
+.instance-selection .helper-text {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-bottom: 1.25rem;
+}
+
+.instance-family-title {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #cbd5f5;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.instance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.instance-card {
+    background: rgba(15, 23, 42, 0.9);
+    border-radius: 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid #1f2937;
+    cursor: pointer;
+    transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, border-color 0.12s;
+}
+
+.instance-card h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: #e5e7eb;
+}
+
+.instance-desc {
+    margin: 0.25rem 0 0.5rem;
+    font-size: 0.85rem;
+    color: #9ca3af;
+}
+
+.instance-tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.1);
+    color: #7dd3fc;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.instance-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.7);
+    border-color: #3b82f6;
+}
+
+.instance-card.selected {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.6);
+}

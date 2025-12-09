@@ -82,6 +82,7 @@ locals {
     llama3-1b  = { pull = "llama3.2:1b" }
     phi3-mini  = { pull = "phi3:mini" }
     phi4-mini  = { pull = "phi4-mini" }
+    qwen-7b    = { pull = "qwen2.5:7b" }
   }
 
   selected_ai = local.ai_catalog[var.ai_choice]
@@ -90,15 +91,21 @@ locals {
     #!/bin/bash
     set -euxo pipefail
 
-    # -------------------------
-    # 1. Base existante (Ollama)
+      # -------------------------
+    # 1. Base existante (Ollama) + SSM
     # -------------------------
 
     dnf update -y
-    dnf install -y docker jq awscli || true
+
+    # Docker, outils, et agent SSM
+    dnf install -y docker jq awscli amazon-ssm-agent || true
     command -v curl >/dev/null 2>&1 || dnf install -y curl-minimal --allowerasing
 
+    # S’assurer que l’agent SSM tourne et démarre au boot
+    systemctl enable --now amazon-ssm-agent || true
+
     systemctl enable --now docker
+
 
     docker run -d --name ollama \
       -p 0.0.0.0:11434:11434 \
@@ -197,6 +204,13 @@ resource "aws_instance" "ai_host" {
   iam_instance_profile        = aws_iam_instance_profile.ssm_profile.name
   associate_public_ip_address = true
 
+  # AUGMENTATION DU DISQUE ROOT (IMPORTANT)
+  root_block_device {
+    volume_size           = 80     # ← on passe l’EBS à 80 Go
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
+
   user_data                   = local.user_data
   user_data_replace_on_change = true
 
@@ -206,6 +220,7 @@ resource "aws_instance" "ai_host" {
     Purpose = "lab"
   })
 }
+
 
 resource "aws_iam_role_policy" "tag_self" {
   name = "${var.project}-ec2-tag-self"

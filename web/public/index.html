@@ -13,7 +13,7 @@
             <p>Sélectionnez votre modèle IA et déployez sur AWS</p>
         </header>
 
-        <!-- Sélection du modèle -->
+                <!-- Sélection du modèle -->
         <section class="model-selection">
             <h2>Choisissez votre modèle IA</h2>
             <div class="models-grid">
@@ -44,12 +44,100 @@
                     <p class="model-desc">phi4-mini</p>
                     <span class="model-tag">Plus puissant</span>
                 </div>
+
+                <div class="model-card" data-model="qwen-7b">
+                    <div class="model-icon"></div>
+                    <h3>Qwen 2.5 7B</h3>
+                    <p class="model-desc">qwen2.5:7b</p>
+                    <span class="model-tag">Gros modèle • Meilleure qualité</span>
+                </div>
             </div>
 
             <div id="selectedModel" class="selected-info" style="display: none;">
                 <strong>Modèle sélectionné :</strong> <span id="selectedModelName"></span>
             </div>
         </section>
+
+                <!-- Sélection du type d'instance -->
+        <section class="instance-selection">
+            <h2>Choisissez le type d'instance EC2</h2>
+            <p class="helper-text">
+                Tu as accès aux familles <strong>T</strong> (généralistes) et <strong>g4dn</strong> (GPU).
+                Choisis en fonction de ton besoin perf / coût.
+            </p>
+
+            <h3 class="instance-family-title">Famille T – généraliste (sans GPU)</h3>
+            <div class="instance-grid">
+                <div class="instance-card" data-instance="t3.small">
+                    <h4>t3.small</h4>
+                    <p class="instance-desc">2 vCPU • 2 GiB RAM</p>
+                    <span class="instance-tag">T • petit test</span>
+                </div>
+
+                <div class="instance-card" data-instance="t3.medium">
+                    <h4>t3.medium</h4>
+                    <p class="instance-desc">2 vCPU • 4 GiB RAM</p>
+                    <span class="instance-tag">T • recommandé</span>
+                </div>
+
+                <div class="instance-card" data-instance="t3.large">
+                    <h4>t3.large</h4>
+                    <p class="instance-desc">2 vCPU • 8 GiB RAM</p>
+                    <span class="instance-tag">T • plus de RAM</span>
+                </div>
+
+                <div class="instance-card" data-instance="t3.xlarge">
+                    <h4>t3.xlarge</h4>
+                    <p class="instance-desc">4 vCPU • 16 GiB RAM</p>
+                    <span class="instance-tag">T • charge sérieuse</span>
+                </div>
+
+                <div class="instance-card" data-instance="t3.2xlarge">
+                    <h4>t3.2xlarge</h4>
+                    <p class="instance-desc">8 vCPU • 32 GiB RAM</p>
+                    <span class="instance-tag">T • lourd / prod</span>
+                </div>
+
+                <div class="instance-card" data-instance="t4g.medium">
+                    <h4>t4g.medium</h4>
+                    <p class="instance-desc">ARM • 2 vCPU • 4 GiB</p>
+                    <span class="instance-tag">T4g • moins cher (ARM)</span>
+                </div>
+            </div>
+
+            <h3 class="instance-family-title">Famille g4dn – GPU</h3>
+            <div class="instance-grid">
+                <div class="instance-card" data-instance="g4dn.xlarge">
+                    <h4>g4dn.xlarge</h4>
+                    <p class="instance-desc">1 GPU • 4 vCPU • 16 GiB</p>
+                    <span class="instance-tag">GPU • point d’entrée</span>
+                </div>
+
+                <div class="instance-card" data-instance="g4dn.2xlarge">
+                    <h4>g4dn.2xlarge</h4>
+                    <p class="instance-desc">1 GPU • 8 vCPU • 32 GiB</p>
+                    <span class="instance-tag">GPU • plus de CPU/RAM</span>
+                </div>
+
+                <div class="instance-card" data-instance="g4dn.4xlarge">
+                    <h4>g4dn.4xlarge</h4>
+                    <p class="instance-desc">1 GPU • 16 vCPU • 64 GiB</p>
+                    <span class="instance-tag">GPU • gros workload</span>
+                </div>
+
+                <div class="instance-card" data-instance="g4dn.8xlarge">
+                    <h4>g4dn.8xlarge</h4>
+                    <p class="instance-desc">1 GPU • 32 vCPU • 128 GiB</p>
+                    <span class="instance-tag">GPU • très costaud</span>
+                </div>
+            </div>
+
+            <div id="selectedInstance" class="selected-info" style="display: none;">
+                <strong>Instance sélectionnée :</strong> <span id="selectedInstanceName"></span>
+            </div>
+        </section>
+
+
 
         <!-- Boutons d'action -->
         <section class="actions">
